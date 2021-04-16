@@ -1,0 +1,10 @@
+[package]
+name = "wgctest"
+version = "0.1.0"
+authors = ["robmikh <rob.mikh@outlook.com>"]
+edition = "2018"
+
+[dependencies]
+windows = "0.8.0"
+bindings = { path = "bindings" }
+async-std = { version = "1.9.0", features = [ "attributes"] }
