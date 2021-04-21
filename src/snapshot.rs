@@ -4,7 +4,7 @@ use bindings::Windows::{
     Graphics::{
         Capture::{Direct3D11CaptureFramePool, GraphicsCaptureItem},
         DirectX::{
-            Direct3D11::{IDirect3DDevice, IDirect3DSurface},
+            Direct3D11::{IDirect3DDevice},
             DirectXPixelFormat,
         },
     },
