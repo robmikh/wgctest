@@ -1,4 +1,4 @@
-use super::utils::{check_color, MappedTexture};
+use super::utils::{MappedTexture, check_color, common_colors};
 use crate::snapshot::take_snapshot;
 use bindings::Windows::{
     Foundation::Numerics::Vector2,
@@ -6,7 +6,7 @@ use bindings::Windows::{
         Capture::GraphicsCaptureItem,
         DirectX::{Direct3D11::IDirect3DDevice, DirectXPixelFormat},
     },
-    UI::{Color, Colors, Composition::Core::CompositorController},
+    UI::Composition::Core::CompositorController,
 };
 
 pub async fn alpha_test(
@@ -25,7 +25,7 @@ pub async fn alpha_test(
     geometry.SetCenter(Vector2::new(50.0, 50.0))?;
     geometry.SetRadius(Vector2::new(50.0, 50.0))?;
     let shape = compositor.CreateSpriteShapeWithGeometry(geometry)?;
-    shape.SetFillBrush(compositor.CreateColorBrushWithColor(Colors::Red()?)?)?;
+    shape.SetFillBrush(compositor.CreateColorBrushWithColor(&common_colors::RED)?)?;
     visual.Shapes()?.Append(shape)?;
 
     // Capture the tree
@@ -47,19 +47,12 @@ pub async fn alpha_test(
     {
         let mapped = MappedTexture::new(&frame)?;
 
-        if !check_color(mapped.read_pixel(50, 50).unwrap(), Colors::Red()?) {
+        if !check_color(mapped.read_pixel(50, 50).unwrap(), common_colors::RED) {
             success = false;
         }
-        // We don't use Colors::Transparent() here becuase that is transparent white.
-        // Right now the capture API uses transparent black to clear.
         if !check_color(
             mapped.read_pixel(5, 5).unwrap(),
-            Color {
-                B: 0,
-                G: 0,
-                R: 0,
-                A: 0,
-            },
+            common_colors::TRANSPARENT_BLACK,
         ) {
             success = false;
         }

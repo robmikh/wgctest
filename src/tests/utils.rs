@@ -91,3 +91,10 @@ pub fn check_color(actual: Color, expected: Color) -> bool {
         true
     }
 }
+
+pub mod common_colors {
+    use bindings::Windows::UI::Color;
+
+    pub const TRANSPARENT_BLACK: Color = Color{ A: 0, R: 0, G: 0, B: 0};
+    pub const RED: Color = Color{ A: 255, R: 255, G: 0, B: 0};
+}

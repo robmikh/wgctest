@@ -1,5 +1,4 @@
 mod d3d;
-mod dispatcher_queue;
 mod snapshot;
 mod tests;
 
