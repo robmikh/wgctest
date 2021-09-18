@@ -1,4 +1,7 @@
-use super::utils::{check_color, common_colors, MappedTexture};
+use super::{
+    utils::{check_color, common_colors, MappedTexture},
+    TestResult,
+};
 use crate::snapshot::take_snapshot_with_commit;
 use bindings::Windows::{
     Foundation::Numerics::Vector2,
@@ -12,10 +15,8 @@ use bindings::Windows::{
 pub async fn alpha_test(
     compositor_controller: &CompositorController,
     device: &IDirect3DDevice,
-) -> windows::Result<bool> {
+) -> TestResult<()> {
     let compositor = compositor_controller.Compositor()?;
-
-    let mut success = true;
 
     // Build the visual tree
     // A red circle centered in a 100 x 100 bitmap with a transparent background.
@@ -44,16 +45,13 @@ pub async fn alpha_test(
     {
         let mapped = MappedTexture::new(&frame)?;
 
-        if !check_color(mapped.read_pixel(50, 50).unwrap(), common_colors::RED) {
-            success = false;
-        }
-        if !check_color(
+        check_color(mapped.read_pixel(50, 50).unwrap(), common_colors::RED).ok(&frame)?;
+        check_color(
             mapped.read_pixel(5, 5).unwrap(),
             common_colors::TRANSPARENT_BLACK,
-        ) {
-            success = false;
-        }
+        )
+        .ok(&frame)?;
     }
 
-    Ok(success)
+    Ok(())
 }

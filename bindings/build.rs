@@ -2,6 +2,15 @@ fn main() {
     windows::build!(
         Windows::Foundation::*,
         Windows::Foundation::Numerics::*,
+        Windows::Graphics::Imaging::{
+            BitmapEncoder, BitmapPixelFormat, BitmapAlphaMode,
+        },
+        Windows::Storage::{
+            StorageFolder, StorageFile, CreationCollisionOption, FileAccessMode,
+        },
+        Windows::Storage::Streams::{
+            IRandomAccessStream,
+        },
         Windows::Win32::UI::HiDpi::{
             SetProcessDpiAwarenessContext, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2,
         },
@@ -39,6 +48,7 @@ fn main() {
             D3D11_SUBRESOURCE_DATA,
             ID3D11DeviceContext,
             D3D11_BOX,
+            ID3D11DeviceChild,
         },
         Windows::Win32::Graphics::Dwm::{
             DwmGetWindowAttribute, DWMWINDOWATTRIBUTE,

@@ -7,17 +7,18 @@ use bindings::Windows::{
 
 use crate::{interop::CompositorDesktopInterop, snapshot::take_snapshot_of_client_area};
 
-use super::utils::{check_color, common_colors, create_test_window_on_thread, MappedTexture};
+use super::{
+    utils::{check_color, common_colors, create_test_window_on_thread, MappedTexture},
+    TestResult,
+};
 
 pub async fn basic_window_test(
     test_thread_queue: &DispatcherQueue,
     compositor_controller: &CompositorController,
     device: &IDirect3DDevice,
-) -> windows::Result<bool> {
-    let mut success = true;
-
-    let width = 800;
-    let height = 600;
+) -> TestResult<()> {
+    let width = 500;
+    let height = 500;
 
     // Create and setup the test window
     let window =
@@ -43,14 +44,12 @@ pub async fn basic_window_test(
     // Map the texture and check the image
     {
         let mapped = MappedTexture::new(&frame)?;
-
-        if !check_color(
+        check_color(
             mapped.read_pixel(width / 2, height / 2).unwrap(),
             common_colors::GREEN,
-        ) {
-            success = false;
-        }
+        )
+        .ok(&frame)?;
     }
 
-    Ok(success)
+    Ok(())
 }

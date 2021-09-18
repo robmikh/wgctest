@@ -13,6 +13,8 @@ use windows::Interface;
 
 use crate::test_window::{create_test_window, TestWindow};
 
+use super::{TestError, TestResult, TextureError};
+
 pub struct MappedTexture<'a> {
     d3d_context: ID3D11DeviceContext,
     texture: &'a ID3D11Texture2D,
@@ -82,18 +84,35 @@ impl<'a> Drop for MappedTexture<'a> {
     }
 }
 
-pub fn check_color(actual: Color, expected: Color) -> bool {
+pub enum ColorCheck {
+    Success,
+    Different(String),
+}
+
+impl ColorCheck {
+    pub fn ok(self, texture: &ID3D11Texture2D) -> TestResult<()> {
+        match self {
+            ColorCheck::Success => Ok(()),
+            ColorCheck::Different(message) => TestError::Texture(TextureError {
+                message,
+                texture: texture.clone(),
+            })
+            .ok(),
+        }
+    }
+}
+
+pub fn check_color(actual: Color, expected: Color) -> ColorCheck {
     if actual != expected {
-        println!(
+        ColorCheck::Different(format!(
             r#"Color comparison failed!
   Actual: ( B: {}, G: {}, R: {}, A: {} )
   Expected: ( B: {}, G: {}, R: {}, A: {} )
 "#,
             actual.B, actual.G, actual.R, actual.A, expected.B, expected.G, expected.R, expected.A
-        );
-        false
+        ))
     } else {
-        true
+        ColorCheck::Success
     }
 }
 
