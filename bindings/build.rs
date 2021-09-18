@@ -5,6 +5,11 @@ fn main() {
         Windows::Win32::UI::HiDpi::{
             SetProcessDpiAwarenessContext, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2,
         },
+        Windows::Win32::UI::WindowsAndMessaging::{
+            CreateWindowExW, WNDCLASSW, LoadCursorW, IDC_ARROW, DefWindowProcW, RegisterClassW,
+            CW_USEDEFAULT, AdjustWindowRectEx, ShowWindow, DestroyWindow, GetClientRect
+        },
+        Windows::Win32::System::LibraryLoader::GetModuleHandleW,
         Windows::Win32::System::SystemServices::{
             DPI_AWARENESS_CONTEXT,
         },
@@ -33,7 +38,12 @@ fn main() {
             ID3D11Texture2D,
             D3D11_SUBRESOURCE_DATA,
             ID3D11DeviceContext,
+            D3D11_BOX,
         },
+        Windows::Win32::Graphics::Dwm::{
+            DwmGetWindowAttribute, DWMWINDOWATTRIBUTE,
+        },
+        Windows::Win32::Graphics::Gdi::ClientToScreen,
         Windows::Win32::System::WinRT::{
            RO_INIT_TYPE,
            RoInitialize,
@@ -42,6 +52,8 @@ fn main() {
            CreateDirect3D11DeviceFromDXGIDevice,
            CreateDispatcherQueueController,
            DispatcherQueueOptions,
+           ICompositorDesktopInterop,
+           IGraphicsCaptureItemInterop,
         },
         Windows::System::{
             DispatcherQueueController,
@@ -53,10 +65,13 @@ fn main() {
         },
         Windows::UI::Composition::{
             Compositor, ShapeVisual, CompositionEllipseGeometry, CompositionSpriteShape,
-            CompositionColorBrush, CompositionShapeCollection,
+            CompositionColorBrush, CompositionShapeCollection, CompositionObject, SpriteVisual,
         },
         Windows::UI::Composition::Core::{
             CompositorController,
+        },
+        Windows::UI::Composition::Desktop::{
+            DesktopWindowTarget,
         },
         Windows::Storage::{
             StorageFolder,
@@ -68,7 +83,7 @@ fn main() {
             IRandomAccessStream,
         },
         Windows::Graphics::{
-            SizeInt32,
+            SizeInt32, RectInt32,
         },
         Windows::Graphics::Capture::{
             Direct3D11CaptureFramePool,

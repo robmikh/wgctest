@@ -1,3 +1,6 @@
+use std::sync::mpsc::channel;
+
+use bindings::Windows::System::{DispatcherQueue, DispatcherQueueHandler};
 use bindings::Windows::Win32::Graphics::Dxgi::DXGI_FORMAT_B8G8R8A8_UNORM;
 use bindings::Windows::{
     Win32::Graphics::Direct3D11::{
@@ -7,6 +10,8 @@ use bindings::Windows::{
     UI::Color,
 };
 use windows::Interface;
+
+use crate::test_window::{create_test_window, TestWindow};
 
 pub struct MappedTexture<'a> {
     d3d_context: ID3D11DeviceContext,
@@ -92,9 +97,49 @@ pub fn check_color(actual: Color, expected: Color) -> bool {
     }
 }
 
+pub fn create_test_window_on_thread(
+    dispatcher_queue: &DispatcherQueue,
+    title: &'static str,
+    width: u32,
+    height: u32,
+) -> windows::Result<TestWindow> {
+    let (sender, receiver) = channel();
+    dispatcher_queue.TryEnqueue(DispatcherQueueHandler::new(
+        move || -> windows::Result<()> {
+            let window = create_test_window(title, width, height)?;
+            sender.send(window).unwrap();
+            Ok(())
+        },
+    ))?;
+    let window = receiver.recv().unwrap();
+    Ok(window)
+}
+
 pub mod common_colors {
     use bindings::Windows::UI::Color;
 
-    pub const TRANSPARENT_BLACK: Color = Color{ A: 0, R: 0, G: 0, B: 0};
-    pub const RED: Color = Color{ A: 255, R: 255, G: 0, B: 0};
+    pub const TRANSPARENT_BLACK: Color = Color {
+        A: 0,
+        R: 0,
+        G: 0,
+        B: 0,
+    };
+    pub const RED: Color = Color {
+        A: 255,
+        R: 255,
+        G: 0,
+        B: 0,
+    };
+    pub const BLUE: Color = Color {
+        A: 255,
+        R: 0,
+        G: 0,
+        B: 255,
+    };
+    pub const GREEN: Color = Color {
+        A: 255,
+        R: 0,
+        G: 255,
+        B: 0,
+    };
 }

@@ -1,5 +1,5 @@
-use super::utils::{MappedTexture, check_color, common_colors};
-use crate::snapshot::take_snapshot;
+use super::utils::{check_color, common_colors, MappedTexture};
+use crate::snapshot::take_snapshot_with_commit;
 use bindings::Windows::{
     Foundation::Numerics::Vector2,
     Graphics::{
@@ -30,16 +30,13 @@ pub async fn alpha_test(
 
     // Capture the tree
     let item = GraphicsCaptureItem::CreateFromVisual(&visual)?;
-    let frame = take_snapshot(
+    let frame = take_snapshot_with_commit(
         device,
         &item,
         DirectXPixelFormat::B8G8R8A8UIntNormalized,
         true,
         true,
-        || {
-            // We need to commit after the capture is started
-            compositor_controller.Commit()
-        },
+        compositor_controller,
     )
     .await?;
 

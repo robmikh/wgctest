@@ -1,17 +1,24 @@
 mod d3d;
+mod interop;
 mod snapshot;
+mod test_window;
 mod tests;
+mod wide_string;
 
 use std::sync::mpsc::channel;
 
 use bindings::Windows::Win32::System::WinRT::{RoInitialize, RO_INIT_SINGLETHREADED};
-use bindings::Windows::Win32::UI::HiDpi::{SetProcessDpiAwarenessContext, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2};
+use bindings::Windows::Win32::UI::HiDpi::{
+    SetProcessDpiAwarenessContext, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2,
+};
 use bindings::Windows::{
     System::{DispatcherQueueController, DispatcherQueueHandler},
     UI::Composition::Core::CompositorController,
 };
 use d3d::{create_d3d_device, create_direct3d_device};
 use tests::alpha_test;
+
+use crate::tests::basic_window_test;
 
 macro_rules! run_test {
     ($test_name:ident, $($param:tt)*) => {
@@ -60,6 +67,12 @@ async fn main() -> windows::Result<()> {
     // Run tests
     // TODO: Allow filters to only run certain tests
     run_test!(alpha_test, &compositor_controller, &device);
+    run_test!(
+        basic_window_test,
+        &compositor_queue,
+        &compositor_controller,
+        &device
+    );
 
     Ok(())
 }
