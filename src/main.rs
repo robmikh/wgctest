@@ -5,9 +5,8 @@ mod tests;
 
 use std::sync::mpsc::channel;
 
-use bindings::Windows::Win32::System::SystemServices::DPI_AWARENESS_CONTEXT;
 use bindings::Windows::Win32::System::WinRT::{RoInitialize, RO_INIT_SINGLETHREADED};
-use bindings::Windows::Win32::UI::HiDpi::SetProcessDpiAwarenessContext;
+use bindings::Windows::Win32::UI::HiDpi::{SetProcessDpiAwarenessContext, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2};
 use bindings::Windows::{
     System::{DispatcherQueueController, DispatcherQueueHandler},
     UI::Composition::Core::CompositorController,
@@ -33,7 +32,7 @@ async fn main() -> windows::Result<()> {
     // NOTE: We don't properly scale any of the UI or properly respond to DPI changes, but none of
     //       the UI is meant to be interacted with. This is just so that the tests don't get
     //       virtualized coordinates on high DPI machines.
-    unsafe { SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT(-4)) };
+    unsafe { SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2) };
     unsafe { RoInitialize(RO_INIT_SINGLETHREADED)? };
 
     // The compositor needs a DispatcherQueue. We'll create one on a dedicated thread so that

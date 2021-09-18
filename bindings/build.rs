@@ -3,7 +3,7 @@ fn main() {
         Windows::Foundation::*,
         Windows::Foundation::Numerics::*,
         Windows::Win32::UI::HiDpi::{
-            SetProcessDpiAwarenessContext,
+            SetProcessDpiAwarenessContext, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2,
         },
         Windows::Win32::System::SystemServices::{
             DPI_AWARENESS_CONTEXT,
