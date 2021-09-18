@@ -1,16 +1,13 @@
+use super::utils::{check_color, MappedTexture};
+use crate::snapshot::take_snapshot;
 use bindings::Windows::{
     Foundation::Numerics::Vector2,
     Graphics::{
         Capture::GraphicsCaptureItem,
         DirectX::{Direct3D11::IDirect3DDevice, DirectXPixelFormat},
     },
-    UI::{
-        Color, Colors,
-        Composition::{Core::CompositorController},
-    },
+    UI::{Color, Colors, Composition::Core::CompositorController},
 };
-use crate::snapshot::take_snapshot;
-use super::utils::{MappedTexture, check_color};
 
 pub async fn alpha_test(
     compositor_controller: &CompositorController,

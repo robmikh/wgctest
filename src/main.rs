@@ -5,8 +5,9 @@ mod tests;
 
 use std::sync::mpsc::channel;
 
-use bindings::Windows::Win32::HiDpi::SetProcessDpiAwarenessContext;
-use bindings::Windows::Win32::SystemServices::DPI_AWARENESS_CONTEXT;
+use bindings::Windows::Win32::System::SystemServices::DPI_AWARENESS_CONTEXT;
+use bindings::Windows::Win32::System::WinRT::{RoInitialize, RO_INIT_SINGLETHREADED};
+use bindings::Windows::Win32::UI::HiDpi::SetProcessDpiAwarenessContext;
 use bindings::Windows::{
     System::{DispatcherQueueController, DispatcherQueueHandler},
     UI::Composition::Core::CompositorController,
@@ -33,7 +34,7 @@ async fn main() -> windows::Result<()> {
     //       the UI is meant to be interacted with. This is just so that the tests don't get
     //       virtualized coordinates on high DPI machines.
     unsafe { SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT(-4)) };
-    windows::initialize_sta()?;
+    unsafe { RoInitialize(RO_INIT_SINGLETHREADED)? };
 
     // The compositor needs a DispatcherQueue. We'll create one on a dedicated thread so that
     // we can block the main thread if we need to.
@@ -53,7 +54,6 @@ async fn main() -> windows::Result<()> {
         ))?;
         receiver.recv().unwrap()
     };
-    let compositor = compositor_controller.Compositor()?;
 
     // Initialize D3D
     let d3d_device = create_d3d_device()?;

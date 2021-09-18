@@ -3,14 +3,12 @@ use bindings::Windows::{
     Foundation::TypedEventHandler,
     Graphics::{
         Capture::{Direct3D11CaptureFramePool, GraphicsCaptureItem},
-        DirectX::{
-            Direct3D11::{IDirect3DDevice},
-            DirectXPixelFormat,
-        },
+        DirectX::{Direct3D11::IDirect3DDevice, DirectXPixelFormat},
     },
-    Win32::Direct3D11::{
-        ID3D11Device, ID3D11Texture2D, D3D11_BIND_FLAG, D3D11_CPU_ACCESS_FLAG,
-        D3D11_TEXTURE2D_DESC, D3D11_USAGE,
+    Win32::Graphics::Direct3D11::{
+        ID3D11Device, ID3D11Texture2D, D3D11_BIND_FLAG, D3D11_BIND_SHADER_RESOURCE,
+        D3D11_CPU_ACCESS_FLAG, D3D11_CPU_ACCESS_READ, D3D11_RESOURCE_MISC_FLAG,
+        D3D11_TEXTURE2D_DESC, D3D11_USAGE_DEFAULT, D3D11_USAGE_STAGING,
     },
 };
 use windows::Interface;
@@ -44,7 +42,7 @@ pub async fn take_snapshot<F: Fn() -> windows::Result<()>>(
     let (sender, receiver) = bounded(1);
     frame_pool.FrameArrived(TypedEventHandler::<
         Direct3D11CaptureFramePool,
-        windows::Object,
+        windows::IInspectable,
     >::new(move |frame_pool, _| {
         let frame_pool = frame_pool.as_ref().unwrap();
         let frame = frame_pool.TryGetNextFrame()?;
@@ -59,22 +57,17 @@ pub async fn take_snapshot<F: Fn() -> windows::Result<()>>(
         let source_texture: ID3D11Texture2D = get_d3d_interface_from_object(&frame.Surface()?)?;
         let mut desc = D3D11_TEXTURE2D_DESC::default();
         source_texture.GetDesc(&mut desc);
-        desc.MiscFlags = 0;
+        desc.MiscFlags = D3D11_RESOURCE_MISC_FLAG(0);
         if staging_texture {
-            desc.Usage = D3D11_USAGE::D3D11_USAGE_STAGING;
-            desc.BindFlags = 0;
-            desc.CPUAccessFlags = D3D11_CPU_ACCESS_FLAG::D3D11_CPU_ACCESS_READ.0 as u32;
+            desc.Usage = D3D11_USAGE_STAGING;
+            desc.BindFlags = D3D11_BIND_FLAG(0);
+            desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
         } else {
-            desc.Usage = D3D11_USAGE::D3D11_USAGE_DEFAULT;
-            desc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_SHADER_RESOURCE.0 as u32;
-            desc.CPUAccessFlags = 0;
+            desc.Usage = D3D11_USAGE_DEFAULT;
+            desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+            desc.CPUAccessFlags = D3D11_CPU_ACCESS_FLAG(0);
         }
-        let mut texture = None;
-        d3d_device
-            .CreateTexture2D(&desc, std::ptr::null(), &mut texture)
-            .ok()?;
-        let texture = texture.unwrap();
-
+        let texture = d3d_device.CreateTexture2D(&desc, std::ptr::null())?;
         d3d_context.CopyResource(Some(texture.cast()?), Some(source_texture.cast()?));
 
         texture

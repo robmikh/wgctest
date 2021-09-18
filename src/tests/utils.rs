@@ -1,13 +1,12 @@
-use bindings::Windows::Win32::Dxgi::DXGI_FORMAT;
+use bindings::Windows::Win32::Graphics::Dxgi::DXGI_FORMAT_B8G8R8A8_UNORM;
 use bindings::Windows::{
-    Win32::Direct3D11::{
-        ID3D11DeviceContext, ID3D11Texture2D, D3D11_MAP, D3D11_MAPPED_SUBRESOURCE,
-        D3D11_TEXTURE2D_DESC,
+    Win32::Graphics::Direct3D11::{
+        ID3D11DeviceContext, ID3D11Resource, ID3D11Texture2D, D3D11_MAPPED_SUBRESOURCE,
+        D3D11_MAP_READ, D3D11_TEXTURE2D_DESC,
     },
-    UI::{
-        Color,
-    },
+    UI::Color,
 };
+use windows::Interface;
 
 pub struct MappedTexture<'a> {
     d3d_context: ID3D11DeviceContext,
@@ -33,14 +32,9 @@ impl<'a> MappedTexture<'a> {
             texture_desc
         };
         // TODO: Support other pixel formats
-        assert_eq!(texture_desc.Format, DXGI_FORMAT::DXGI_FORMAT_B8G8R8A8_UNORM);
-        let mapped_data = unsafe {
-            let mut mapped_data = D3D11_MAPPED_SUBRESOURCE::default();
-            d3d_context
-                .Map(texture, 0, D3D11_MAP::D3D11_MAP_READ, 0, &mut mapped_data)
-                .ok()?;
-            mapped_data
-        };
+        assert_eq!(texture_desc.Format, DXGI_FORMAT_B8G8R8A8_UNORM);
+        let resource: ID3D11Resource = texture.cast()?;
+        let mapped_data = unsafe { d3d_context.Map(Some(resource.clone()), 0, D3D11_MAP_READ, 0)? };
 
         Ok(Self {
             d3d_context,
