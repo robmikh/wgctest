@@ -22,13 +22,13 @@ use bindings::Windows::{
 };
 use windows::Interface;
 
-use crate::{d3d::get_d3d_interface_from_object, interop::GraphicsCaptureItemInterop};
-
-use super::{
-    utils::{
-        common_colors, create_test_window_on_thread, test_center_of_surface, AsyncGraphicsCapture,
-    },
-    TestResult,
+use crate::util::{
+    async_graphics_capture::AsyncGraphicsCapture,
+    color::{common_colors, test_center_of_surface},
+    d3d::get_d3d_interface_from_object,
+    error::TestResult,
+    interop::GraphicsCaptureItemInterop,
+    test_window::TestWindow,
 };
 
 pub async fn fullscreen_transition_test(
@@ -40,7 +40,7 @@ pub async fn fullscreen_transition_test(
     let d3d_device: ID3D11Device = get_d3d_interface_from_object(device)?;
 
     // Create and setup the test window
-    let window = create_test_window_on_thread(
+    let window = TestWindow::new_on_thread(
         &test_thread_queue,
         "wgctest - Fullscreen Transition Test",
         width,

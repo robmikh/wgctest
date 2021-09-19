@@ -5,11 +5,13 @@ use bindings::Windows::{
     UI::Composition::Core::CompositorController,
 };
 
-use crate::{interop::CompositorDesktopInterop, snapshot::take_snapshot_of_client_area};
-
-use super::{
-    utils::{check_color, common_colors, create_test_window_on_thread, MappedTexture},
-    TestResult,
+use crate::util::{
+    color::{check_color, common_colors},
+    error::TestResult,
+    interop::CompositorDesktopInterop,
+    mapped::MappedTexture,
+    snapshot::take_snapshot_of_client_area,
+    test_window::TestWindow,
 };
 
 pub async fn basic_window_test(
@@ -21,7 +23,7 @@ pub async fn basic_window_test(
     let height = 500;
 
     // Create and setup the test window
-    let window = create_test_window_on_thread(
+    let window = TestWindow::new_on_thread(
         &test_thread_queue,
         "wgctest - Basic Window Test",
         width,

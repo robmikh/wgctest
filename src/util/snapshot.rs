@@ -23,7 +23,7 @@ use bindings::Windows::{
 };
 use windows::Interface;
 
-use crate::{d3d::get_d3d_interface_from_object, interop::GraphicsCaptureItemInterop};
+use super::{d3d::get_d3d_interface_from_object, interop::GraphicsCaptureItemInterop};
 
 pub async fn take_snapshot(
     device: &IDirect3DDevice,

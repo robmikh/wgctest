@@ -1,9 +1,5 @@
-mod d3d;
-mod interop;
-mod snapshot;
-mod test_window;
 mod tests;
-mod wide_string;
+mod util;
 
 use std::sync::mpsc::channel;
 
@@ -20,10 +16,10 @@ use bindings::Windows::{
     System::{DispatcherQueueController, DispatcherQueueHandler},
     UI::Composition::Core::CompositorController,
 };
-use d3d::{create_d3d_device, create_direct3d_device};
 use windows::Interface;
 
 use crate::tests::{alpha_test, basic_window_test, fullscreen_transition_test};
+use crate::util::d3d::{create_d3d_device, create_direct3d_device};
 
 macro_rules! run_test {
     ($test_name:ident, $($param:tt)*) => {
@@ -32,7 +28,7 @@ macro_rules! run_test {
             let status = match result {
                 Ok(_) => "PASSED".to_owned(),
                 Err(error) => {
-                    if let crate::tests::TestError::Texture(texture_error) = &error {
+                    if let crate::util::error::TestError::Texture(texture_error) = &error {
                         save_image_async(stringify!($test_name), &texture_error.texture).await?;
                     }
                     format!("FAILED - {}", error)

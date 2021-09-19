@@ -1,3 +1,4 @@
+use std::sync::mpsc::channel;
 use std::sync::Once;
 
 use bindings::Windows::System::{DispatcherQueue, DispatcherQueueHandler};
@@ -11,7 +12,7 @@ use bindings::Windows::Win32::UI::WindowsAndMessaging::{
 };
 use windows::Handle;
 
-use crate::wide_string::ToWide;
+use super::wide_string::ToWide;
 
 static TEST_WINDOW_CLASS_REGISTRATION: Once = Once::new();
 static TEST_WINDOW_CLASS_NAME: &str = "wgctest.TestWindow";
@@ -22,6 +23,24 @@ pub struct TestWindow {
 }
 
 impl TestWindow {
+    pub fn new_on_thread(
+        dispatcher_queue: &DispatcherQueue,
+        title: &'static str,
+        width: u32,
+        height: u32,
+    ) -> windows::Result<Self> {
+        let (sender, receiver) = channel();
+        dispatcher_queue.TryEnqueue(DispatcherQueueHandler::new(
+            move || -> windows::Result<()> {
+                let window = TestWindow::new(title, width, height)?;
+                sender.send(window).unwrap();
+                Ok(())
+            },
+        ))?;
+        let window = receiver.recv().unwrap();
+        Ok(window)
+    }
+
     pub fn new(title: &str, width: u32, height: u32) -> windows::Result<Self> {
         let class_name = TEST_WINDOW_CLASS_NAME.to_wide();
         let instance = unsafe { GetModuleHandleW(PWSTR(std::ptr::null_mut())).ok()? };
@@ -77,7 +96,6 @@ impl TestWindow {
             )
             .ok()?
         };
-        result.handle = window;
         unsafe { ShowWindow(&window, SW_SHOW) };
 
         Ok(result)
