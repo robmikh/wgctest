@@ -19,7 +19,7 @@ use bindings::Windows::{
 use windows::Interface;
 
 use crate::d3d::{copy_texture, get_d3d_interface_from_object};
-use crate::test_window::{create_test_window, TestWindow};
+use crate::test_window::TestWindow;
 
 use super::{TestError, TestResult, TextureError};
 
@@ -133,7 +133,7 @@ pub fn create_test_window_on_thread(
     let (sender, receiver) = channel();
     dispatcher_queue.TryEnqueue(DispatcherQueueHandler::new(
         move || -> windows::Result<()> {
-            let window = create_test_window(title, width, height)?;
+            let window = TestWindow::new(title, width, height)?;
             sender.send(window).unwrap();
             Ok(())
         },

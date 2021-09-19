@@ -25,7 +25,9 @@ use windows::Interface;
 use crate::{d3d::get_d3d_interface_from_object, interop::GraphicsCaptureItemInterop};
 
 use super::{
-    utils::{common_colors, create_test_window_on_thread, test_center_of_surface, AsyncGraphicsCapture},
+    utils::{
+        common_colors, create_test_window_on_thread, test_center_of_surface, AsyncGraphicsCapture,
+    },
     TestResult,
 };
 
@@ -44,13 +46,13 @@ pub async fn fullscreen_transition_test(
         width,
         height,
     )?;
-    let mut swap_chain = TestSwapChain::new(&d3d_device, width, height, &window.0)?;
+    let mut swap_chain = TestSwapChain::new(&d3d_device, width, height, &window.handle())?;
     swap_chain.flip(&common_colors::RED)?;
 
     async_std::task::sleep(Duration::from_millis(500)).await;
 
     // Start the capture
-    let item = GraphicsCaptureItem::create_for_window(&window.0)?;
+    let item = GraphicsCaptureItem::create_for_window(&window.handle())?;
     let capture = AsyncGraphicsCapture::new(device, item)?;
 
     // The first frame should be red

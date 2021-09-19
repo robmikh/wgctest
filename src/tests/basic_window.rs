@@ -28,7 +28,7 @@ pub async fn basic_window_test(
         height,
     )?;
     let compositor = compositor_controller.Compositor()?;
-    let target = compositor.create_desktop_window_target(&window.0, false)?;
+    let target = compositor.create_desktop_window_target(&window.handle(), false)?;
     let root = compositor.CreateSpriteVisual()?;
     root.SetRelativeSizeAdjustment(Vector2::new(1.0, 1.0))?;
     root.SetBrush(compositor.CreateColorBrushWithColor(common_colors::GREEN)?)?;
@@ -41,7 +41,7 @@ pub async fn basic_window_test(
         DirectXPixelFormat::B8G8R8A8UIntNormalized,
         true,
         true,
-        &window.0,
+        &window.handle(),
     )
     .await?;
 

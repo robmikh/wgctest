@@ -16,7 +16,8 @@ fn main() {
         },
         Windows::Win32::UI::WindowsAndMessaging::{
             CreateWindowExW, WNDCLASSW, LoadCursorW, IDC_ARROW, DefWindowProcW, RegisterClassW,
-            CW_USEDEFAULT, AdjustWindowRectEx, ShowWindow, DestroyWindow, GetClientRect
+            CW_USEDEFAULT, AdjustWindowRectEx, ShowWindow, DestroyWindow, GetClientRect, WM_NCCREATE,
+            CREATESTRUCTW, SetWindowLongW, SetWindowLongPtrW, GetWindowLongW, GetWindowLongPtrW,
         },
         Windows::Win32::System::LibraryLoader::GetModuleHandleW,
         Windows::Win32::System::SystemServices::{
