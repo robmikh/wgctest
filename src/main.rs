@@ -23,7 +23,7 @@ use bindings::Windows::{
 use d3d::{create_d3d_device, create_direct3d_device};
 use windows::Interface;
 
-use crate::tests::{alpha_test, basic_window_test};
+use crate::tests::{alpha_test, basic_window_test, fullscreen_transition_test};
 
 macro_rules! run_test {
     ($test_name:ident, $($param:tt)*) => {
@@ -83,6 +83,7 @@ async fn main() -> windows::Result<()> {
         &compositor_controller,
         &device
     );
+    run_test!(fullscreen_transition_test, &compositor_queue, &device);
 
     Ok(())
 }

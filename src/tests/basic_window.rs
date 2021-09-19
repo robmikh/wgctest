@@ -21,8 +21,12 @@ pub async fn basic_window_test(
     let height = 500;
 
     // Create and setup the test window
-    let window =
-        create_test_window_on_thread(&test_thread_queue, "wgc - Basic Window Test", width, height)?;
+    let window = create_test_window_on_thread(
+        &test_thread_queue,
+        "wgctest - Basic Window Test",
+        width,
+        height,
+    )?;
     let compositor = compositor_controller.Compositor()?;
     let target = compositor.create_desktop_window_target(&window.0, false)?;
     let root = compositor.CreateSpriteVisual()?;

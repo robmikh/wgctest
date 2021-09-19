@@ -1,4 +1,9 @@
 use bindings::Windows::Graphics::DirectX::Direct3D11::IDirect3DDevice;
+use bindings::Windows::Win32::Graphics::Direct3D11::{
+    ID3D11DeviceContext, ID3D11Texture2D, D3D11_BIND_FLAG, D3D11_BIND_SHADER_RESOURCE,
+    D3D11_CPU_ACCESS_FLAG, D3D11_CPU_ACCESS_READ, D3D11_RESOURCE_MISC_FLAG, D3D11_TEXTURE2D_DESC,
+    D3D11_USAGE_DEFAULT, D3D11_USAGE_STAGING,
+};
 use bindings::Windows::Win32::Graphics::{
     Direct3D11::{
         D3D11CreateDevice, ID3D11Device, D3D11_CREATE_DEVICE_BGRA_SUPPORT,
@@ -65,4 +70,27 @@ pub fn get_d3d_interface_from_object<S: Interface, R: Interface + Abi>(
     let access: IDirect3DDxgiInterfaceAccess = object.cast()?;
     let object = unsafe { access.GetInterface::<R>()? };
     Ok(object)
+}
+
+pub fn copy_texture(
+    d3d_device: &ID3D11Device,
+    d3d_context: &ID3D11DeviceContext,
+    texture: &ID3D11Texture2D,
+    staging_texture: bool,
+) -> windows::Result<ID3D11Texture2D> {
+    let mut desc = D3D11_TEXTURE2D_DESC::default();
+    unsafe { texture.GetDesc(&mut desc) };
+    desc.MiscFlags = D3D11_RESOURCE_MISC_FLAG(0);
+    if staging_texture {
+        desc.Usage = D3D11_USAGE_STAGING;
+        desc.BindFlags = D3D11_BIND_FLAG(0);
+        desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+    } else {
+        desc.Usage = D3D11_USAGE_DEFAULT;
+        desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+        desc.CPUAccessFlags = D3D11_CPU_ACCESS_FLAG(0);
+    }
+    let new_texture = unsafe { d3d_device.CreateTexture2D(&desc, std::ptr::null())? };
+    unsafe { d3d_context.CopyResource(Some(new_texture.cast()?), Some(texture.cast()?)) };
+    Ok(new_texture)
 }

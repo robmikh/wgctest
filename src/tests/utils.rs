@@ -1,6 +1,13 @@
 use std::sync::mpsc::channel;
 
+use bindings::Windows::Foundation::TypedEventHandler;
+use bindings::Windows::Graphics::Capture::{
+    Direct3D11CaptureFrame, Direct3D11CaptureFramePool, GraphicsCaptureItem, GraphicsCaptureSession,
+};
+use bindings::Windows::Graphics::DirectX::Direct3D11::{IDirect3DDevice, IDirect3DSurface};
+use bindings::Windows::Graphics::DirectX::DirectXPixelFormat;
 use bindings::Windows::System::{DispatcherQueue, DispatcherQueueHandler};
+use bindings::Windows::Win32::Graphics::Direct3D11::ID3D11DeviceChild;
 use bindings::Windows::Win32::Graphics::Dxgi::DXGI_FORMAT_B8G8R8A8_UNORM;
 use bindings::Windows::{
     Win32::Graphics::Direct3D11::{
@@ -11,6 +18,7 @@ use bindings::Windows::{
 };
 use windows::Interface;
 
+use crate::d3d::{copy_texture, get_d3d_interface_from_object};
 use crate::test_window::{create_test_window, TestWindow};
 
 use super::{TestError, TestResult, TextureError};
@@ -132,6 +140,88 @@ pub fn create_test_window_on_thread(
     ))?;
     let window = receiver.recv().unwrap();
     Ok(window)
+}
+
+pub struct AsyncGraphicsCapture {
+    _item: GraphicsCaptureItem,
+    frame_pool: Direct3D11CaptureFramePool,
+    session: GraphicsCaptureSession,
+    receiver: async_std::channel::Receiver<Direct3D11CaptureFrame>,
+}
+
+impl AsyncGraphicsCapture {
+    pub fn new(device: &IDirect3DDevice, item: GraphicsCaptureItem) -> windows::Result<Self> {
+        let frame_pool = Direct3D11CaptureFramePool::CreateFreeThreaded(
+            device,
+            DirectXPixelFormat::B8G8R8A8UIntNormalized,
+            1,
+            item.Size()?,
+        )?;
+        let (sender, receiver) = async_std::channel::bounded(1);
+        frame_pool.FrameArrived(TypedEventHandler::<
+            Direct3D11CaptureFramePool,
+            windows::IInspectable,
+        >::new(
+            move |frame_pool, _| -> windows::Result<()> {
+                let frame_pool = frame_pool.as_ref().unwrap();
+                let frame = frame_pool.TryGetNextFrame()?;
+                async_std::task::block_on(sender.send(frame)).unwrap();
+                Ok(())
+            },
+        ))?;
+        let session = frame_pool.CreateCaptureSession(&item)?;
+        session.StartCapture()?;
+        Ok(Self {
+            _item: item,
+            frame_pool,
+            session,
+            receiver,
+        })
+    }
+
+    pub async fn get_next_frame(&self) -> windows::Result<Direct3D11CaptureFrame> {
+        let frame = self.receiver.recv().await.unwrap();
+        Ok(frame)
+    }
+}
+
+impl Drop for AsyncGraphicsCapture {
+    fn drop(&mut self) {
+        self.session.Close().unwrap();
+        self.frame_pool.Close().unwrap();
+    }
+}
+
+pub fn test_center_of_surface(frame: IDirect3DSurface, color: &Color) -> TestResult<()> {
+    let description = frame.Description()?;
+    let x = description.Width / 2;
+    let y = description.Height / 2;
+    test_surface_at_point(frame, color, x as u32, y as u32)
+}
+
+pub fn test_surface_at_point(
+    frame: IDirect3DSurface,
+    color: &Color,
+    x: u32,
+    y: u32,
+) -> TestResult<()> {
+    let texture: ID3D11Texture2D = get_d3d_interface_from_object(&frame)?;
+    let d3d_device = {
+        let mut d3d_device = None;
+        let child: ID3D11DeviceChild = texture.cast()?;
+        unsafe { child.GetDevice(&mut d3d_device) };
+        d3d_device.unwrap()
+    };
+    let d3d_context = {
+        let mut d3d_context = None;
+        unsafe { d3d_device.GetImmediateContext(&mut d3d_context) };
+        d3d_context.unwrap()
+    };
+    let new_texture = copy_texture(&d3d_device, &d3d_context, &texture, true)?;
+    {
+        let mapped = MappedTexture::new(&new_texture)?;
+        check_color(mapped.read_pixel(x, y).unwrap(), *color).ok(&new_texture)
+    }
 }
 
 pub mod common_colors {
