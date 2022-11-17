@@ -1,9 +1,12 @@
+use windows::core::{Abi, Interface};
 use windows::Graphics::DirectX::Direct3D11::IDirect3DDevice;
-use windows::Win32::Graphics::Direct3D::{D3D_DRIVER_TYPE, D3D_DRIVER_TYPE_HARDWARE, D3D_DRIVER_TYPE_WARP};
+use windows::Win32::Graphics::Direct3D::{
+    D3D_DRIVER_TYPE, D3D_DRIVER_TYPE_HARDWARE, D3D_DRIVER_TYPE_WARP,
+};
 use windows::Win32::Graphics::Direct3D11::{
-    ID3D11DeviceContext, ID3D11Texture2D, D3D11_BIND_FLAG, D3D11_BIND_SHADER_RESOURCE,
-    D3D11_CPU_ACCESS_FLAG, D3D11_CPU_ACCESS_READ, D3D11_RESOURCE_MISC_FLAG, D3D11_TEXTURE2D_DESC,
-    D3D11_USAGE_DEFAULT, D3D11_USAGE_STAGING, ID3D11Resource,
+    ID3D11DeviceContext, ID3D11Resource, ID3D11Texture2D, D3D11_BIND_FLAG,
+    D3D11_BIND_SHADER_RESOURCE, D3D11_CPU_ACCESS_FLAG, D3D11_CPU_ACCESS_READ,
+    D3D11_RESOURCE_MISC_FLAG, D3D11_TEXTURE2D_DESC, D3D11_USAGE_DEFAULT, D3D11_USAGE_STAGING,
 };
 use windows::Win32::Graphics::{
     Direct3D11::{
@@ -15,7 +18,6 @@ use windows::Win32::Graphics::{
 use windows::Win32::System::WinRT::Direct3D11::{
     CreateDirect3D11DeviceFromDXGIDevice, IDirect3DDxgiInterfaceAccess,
 };
-use windows::core::{Abi, Interface};
 
 fn create_d3d_device_with_type(
     driver_type: D3D_DRIVER_TYPE,

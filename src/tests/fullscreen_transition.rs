@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use windows::core::Interface;
 use windows::{
     Graphics::{Capture::GraphicsCaptureItem, DirectX::Direct3D11::IDirect3DDevice},
     System::DispatcherQueue,
@@ -10,16 +11,16 @@ use windows::{
                 ID3D11Device, ID3D11DeviceContext, ID3D11RenderTargetView, ID3D11Texture2D,
             },
             Dxgi::{
-                IDXGIAdapter, IDXGIDevice2, IDXGIFactory2, IDXGISwapChain1, DXGI_PRESENT_PARAMETERS,
-                DXGI_SCALING_NONE, DXGI_SWAP_CHAIN_DESC1, DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL,
-                DXGI_USAGE_RENDER_TARGET_OUTPUT, Common::{DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_SAMPLE_DESC, DXGI_ALPHA_MODE_IGNORE},
+                Common::{DXGI_ALPHA_MODE_IGNORE, DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_SAMPLE_DESC},
+                IDXGIAdapter, IDXGIDevice2, IDXGIFactory2, IDXGISwapChain1,
+                DXGI_PRESENT_PARAMETERS, DXGI_SCALING_NONE, DXGI_SWAP_CHAIN_DESC1,
+                DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL, DXGI_USAGE_RENDER_TARGET_OUTPUT,
             },
         },
         UI::WindowsAndMessaging::GetClientRect,
     },
     UI::Color,
 };
-use windows::core::Interface;
 
 use crate::util::{
     async_graphics_capture::AsyncGraphicsCapture,
@@ -128,13 +129,11 @@ impl TestSwapChain {
         let adapter: IDXGIAdapter = unsafe { dxgi_device.GetParent()? };
         let factory: IDXGIFactory2 = unsafe { adapter.GetParent()? };
 
-        let swap_chain = unsafe {
-            factory.CreateSwapChainForHwnd(d3d_device, *window, &desc, None, None)?
-        };
+        let swap_chain =
+            unsafe { factory.CreateSwapChainForHwnd(d3d_device, *window, &desc, None, None)? };
 
         let back_buffer: ID3D11Texture2D = unsafe { swap_chain.GetBuffer(0)? };
-        let render_target_view =
-            unsafe { d3d_device.CreateRenderTargetView(&back_buffer, None)? };
+        let render_target_view = unsafe { d3d_device.CreateRenderTargetView(&back_buffer, None)? };
 
         Ok(Self {
             d3d_device: d3d_device.clone(),
@@ -180,10 +179,8 @@ impl TestSwapChain {
                     .ResizeBuffers(2, width, height, DXGI_FORMAT_B8G8R8A8_UNORM, 0)?
             };
             let back_buffer: ID3D11Texture2D = unsafe { self.swap_chain.GetBuffer(0)? };
-            let render_target_view = unsafe {
-                self.d3d_device
-                    .CreateRenderTargetView(&back_buffer, None)?
-            };
+            let render_target_view =
+                unsafe { self.d3d_device.CreateRenderTargetView(&back_buffer, None)? };
             self.render_target_view = Some(render_target_view);
         }
         Ok(())
@@ -197,8 +194,10 @@ impl TestSwapChain {
             color.A as f32 / 255.0,
         ];
         unsafe {
-            self.d3d_context
-                .ClearRenderTargetView(self.render_target_view.as_ref().unwrap(), &color_f as *const _)
+            self.d3d_context.ClearRenderTargetView(
+                self.render_target_view.as_ref().unwrap(),
+                &color_f as *const _,
+            )
         };
         let present_params = DXGI_PRESENT_PARAMETERS::default();
         unsafe { self.swap_chain.Present1(0, 0, &present_params).ok()? };

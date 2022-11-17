@@ -8,5 +8,5 @@ pub mod mapped;
 pub mod snapshot;
 #[macro_use]
 pub mod test_runner;
-pub mod test_window;
 pub mod handle;
+pub mod test_window;

@@ -1,17 +1,17 @@
 use std::sync::mpsc::channel;
 use std::sync::Once;
 
+use windows::core::HSTRING;
+use windows::h;
 use windows::System::{DispatcherQueue, DispatcherQueueHandler};
 use windows::Win32::Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, RECT, WPARAM};
 use windows::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows::Win32::UI::WindowsAndMessaging::{
-    AdjustWindowRectEx, CreateWindowExW, DefWindowProcW, DestroyWindow, LoadCursorW,
-    RegisterClassW, ShowWindow, CREATESTRUCTW, CW_USEDEFAULT, GWLP_USERDATA, HMENU, IDC_ARROW,
-    SW_SHOW, WM_NCCREATE, WNDCLASSW, WS_EX_NOREDIRECTIONBITMAP,
-    WS_OVERLAPPEDWINDOW, GetWindowLongPtrW, SetWindowLongPtrW,
+    AdjustWindowRectEx, CreateWindowExW, DefWindowProcW, DestroyWindow, GetWindowLongPtrW,
+    LoadCursorW, RegisterClassW, SetWindowLongPtrW, ShowWindow, CREATESTRUCTW, CW_USEDEFAULT,
+    GWLP_USERDATA, HMENU, IDC_ARROW, SW_SHOW, WM_NCCREATE, WNDCLASSW, WS_EX_NOREDIRECTIONBITMAP,
+    WS_OVERLAPPEDWINDOW,
 };
-use windows::core::HSTRING;
-use windows::h;
 
 use super::handle::CheckHandle;
 
@@ -106,12 +106,10 @@ impl TestWindow {
 
     pub fn close(&self) -> windows::core::Result<()> {
         let handle = self.handle;
-        let handler = DispatcherQueueHandler::new(
-            move || -> windows::core::Result<()> {
-                unsafe { DestroyWindow(handle) };
-                Ok(())
-            },
-        );
+        let handler = DispatcherQueueHandler::new(move || -> windows::core::Result<()> {
+            unsafe { DestroyWindow(handle) };
+            Ok(())
+        });
         self.queue.TryEnqueue(&handler)?;
         Ok(())
     }

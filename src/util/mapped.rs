@@ -1,13 +1,14 @@
+use windows::core::Interface;
 use windows::{
     Win32::Graphics::{
         Direct3D11::{
             ID3D11DeviceContext, ID3D11Resource, ID3D11Texture2D, D3D11_MAPPED_SUBRESOURCE,
             D3D11_MAP_READ, D3D11_TEXTURE2D_DESC,
-        }, Dxgi::Common::DXGI_FORMAT_B8G8R8A8_UNORM,
+        },
+        Dxgi::Common::DXGI_FORMAT_B8G8R8A8_UNORM,
     },
     UI::Color,
 };
-use windows::core::Interface;
 
 pub struct MappedTexture<'a> {
     d3d_context: ID3D11DeviceContext,

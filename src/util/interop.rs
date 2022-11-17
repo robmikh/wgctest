@@ -1,12 +1,14 @@
+use windows::core::Interface;
 use windows::{
     Graphics::Capture::GraphicsCaptureItem,
     Win32::{
         Foundation::HWND,
-        System::WinRT::{Composition::ICompositorDesktopInterop, Graphics::Capture::IGraphicsCaptureItemInterop},
+        System::WinRT::{
+            Composition::ICompositorDesktopInterop, Graphics::Capture::IGraphicsCaptureItemInterop,
+        },
     },
     UI::Composition::{Compositor, Desktop::DesktopWindowTarget},
 };
-use windows::core::Interface;
 
 pub trait CompositorDesktopInterop {
     fn create_desktop_window_target(

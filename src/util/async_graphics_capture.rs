@@ -25,17 +25,15 @@ impl AsyncGraphicsCapture {
             item.Size()?,
         )?;
         let (sender, receiver) = async_std::channel::bounded(1);
-        let handler = TypedEventHandler::<
-        Direct3D11CaptureFramePool,
-        windows::core::IInspectable,
-    >::new(
-        move |frame_pool, _| -> windows::core::Result<()> {
-            let frame_pool = frame_pool.as_ref().unwrap();
-            let frame = frame_pool.TryGetNextFrame()?;
-            async_std::task::block_on(sender.send(frame)).unwrap();
-            Ok(())
-        },
-    );
+        let handler =
+            TypedEventHandler::<Direct3D11CaptureFramePool, windows::core::IInspectable>::new(
+                move |frame_pool, _| -> windows::core::Result<()> {
+                    let frame_pool = frame_pool.as_ref().unwrap();
+                    let frame = frame_pool.TryGetNextFrame()?;
+                    async_std::task::block_on(sender.send(frame)).unwrap();
+                    Ok(())
+                },
+            );
         frame_pool.FrameArrived(&handler)?;
         let session = frame_pool.CreateCaptureSession(&item)?;
         session.StartCapture()?;

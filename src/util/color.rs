@@ -1,9 +1,9 @@
+use windows::core::Interface;
 use windows::{
     Graphics::DirectX::Direct3D11::IDirect3DSurface,
     Win32::Graphics::Direct3D11::{ID3D11DeviceChild, ID3D11Texture2D},
     UI::Color,
 };
-use windows::core::Interface;
 
 use super::{
     d3d::{copy_texture, get_d3d_interface_from_object},

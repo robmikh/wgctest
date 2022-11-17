@@ -33,13 +33,11 @@ async fn main() -> windows::core::Result<()> {
     // over calling Commit.
     let compositor_controller = {
         let (sender, receiver) = channel();
-        let handler = DispatcherQueueHandler::new(
-            move || -> windows::core::Result<()> {
-                let compositor_controller = CompositorController::new()?;
-                sender.send(compositor_controller).unwrap();
-                Ok(())
-            },
-        );
+        let handler = DispatcherQueueHandler::new(move || -> windows::core::Result<()> {
+            let compositor_controller = CompositorController::new()?;
+            sender.send(compositor_controller).unwrap();
+            Ok(())
+        });
         compositor_queue.TryEnqueue(&handler)?;
         receiver.recv().unwrap()
     };

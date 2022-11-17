@@ -1,13 +1,17 @@
+use windows::core::Interface;
 use windows::{
+    core::HSTRING,
     Graphics::Imaging::{BitmapAlphaMode, BitmapEncoder, BitmapPixelFormat},
     Storage::{CreationCollisionOption, FileAccessMode, StorageFolder},
     Win32::Graphics::Direct3D11::{
         ID3D11DeviceChild, ID3D11Resource, ID3D11Texture2D, D3D11_MAP_READ, D3D11_TEXTURE2D_DESC,
-    }, core::HSTRING,
+    },
 };
-use windows::core::Interface;
 
-pub async fn save_image_async(file_stem: &str, texture: &ID3D11Texture2D) -> windows::core::Result<()> {
+pub async fn save_image_async(
+    file_stem: &str,
+    texture: &ID3D11Texture2D,
+) -> windows::core::Result<()> {
     let path = std::env::current_dir()
         .unwrap()
         .to_string_lossy()

@@ -1,4 +1,5 @@
 use async_std::{channel::bounded, task::block_on};
+use windows::core::Interface;
 use windows::{
     Foundation::TypedEventHandler,
     Graphics::{
@@ -10,9 +11,10 @@ use windows::{
         Foundation::{HWND, POINT, RECT},
         Graphics::{
             Direct3D11::{
-                ID3D11Device, ID3D11Texture2D, D3D11_BIND_FLAG, D3D11_BIND_SHADER_RESOURCE,
-                D3D11_BOX, D3D11_CPU_ACCESS_FLAG, D3D11_CPU_ACCESS_READ, D3D11_RESOURCE_MISC_FLAG,
-                D3D11_TEXTURE2D_DESC, D3D11_USAGE_DEFAULT, D3D11_USAGE_STAGING, ID3D11Resource,
+                ID3D11Device, ID3D11Resource, ID3D11Texture2D, D3D11_BIND_FLAG,
+                D3D11_BIND_SHADER_RESOURCE, D3D11_BOX, D3D11_CPU_ACCESS_FLAG,
+                D3D11_CPU_ACCESS_READ, D3D11_RESOURCE_MISC_FLAG, D3D11_TEXTURE2D_DESC,
+                D3D11_USAGE_DEFAULT, D3D11_USAGE_STAGING,
             },
             Dwm::{DwmGetWindowAttribute, DWMWA_EXTENDED_FRAME_BOUNDS},
             Gdi::ClientToScreen,
@@ -21,7 +23,6 @@ use windows::{
     },
     UI::Composition::Core::CompositorController,
 };
-use windows::core::Interface;
 
 use super::{d3d::get_d3d_interface_from_object, interop::GraphicsCaptureItemInterop};
 
@@ -139,15 +140,14 @@ async fn take_snapshot_internal<F: Fn() -> windows::core::Result<()>>(
     }
 
     let (sender, receiver) = bounded(1);
-    let handler = TypedEventHandler::<
-    Direct3D11CaptureFramePool,
-    windows::core::IInspectable,
->::new(move |frame_pool, _| {
-    let frame_pool = frame_pool.as_ref().unwrap();
-    let frame = frame_pool.TryGetNextFrame()?;
-    block_on(sender.send(frame)).unwrap();
-    Ok(())
-});
+    let handler = TypedEventHandler::<Direct3D11CaptureFramePool, windows::core::IInspectable>::new(
+        move |frame_pool, _| {
+            let frame_pool = frame_pool.as_ref().unwrap();
+            let frame = frame_pool.TryGetNextFrame()?;
+            block_on(sender.send(frame)).unwrap();
+            Ok(())
+        },
+    );
     frame_pool.FrameArrived(&handler)?;
     session.StartCapture()?;
     started()?;
