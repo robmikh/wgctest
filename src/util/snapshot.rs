@@ -26,26 +26,6 @@ use windows::{
 
 use super::{d3d::get_d3d_interface_from_object, interop::GraphicsCaptureItemInterop};
 
-pub async fn take_snapshot(
-    device: &IDirect3DDevice,
-    item: &GraphicsCaptureItem,
-    pixel_format: DirectXPixelFormat,
-    staging_texture: bool,
-    cursor_enabled: bool,
-) -> windows::core::Result<ID3D11Texture2D> {
-    let texture = take_snapshot_internal(
-        device,
-        item,
-        pixel_format,
-        staging_texture,
-        cursor_enabled,
-        None,
-        || -> windows::core::Result<()> { Ok(()) },
-    )
-    .await?;
-    Ok(texture)
-}
-
 pub async fn take_snapshot_with_commit(
     device: &IDirect3DDevice,
     item: &GraphicsCaptureItem,
