@@ -1,21 +1,22 @@
 use std::sync::mpsc::channel;
 use std::sync::Once;
 
-use bindings::Windows::System::{DispatcherQueue, DispatcherQueueHandler};
-use bindings::Windows::Win32::Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, PWSTR, RECT, WPARAM};
-use bindings::Windows::Win32::System::LibraryLoader::GetModuleHandleW;
-use bindings::Windows::Win32::UI::WindowsAndMessaging::{
+use windows::System::{DispatcherQueue, DispatcherQueueHandler};
+use windows::Win32::Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, RECT, WPARAM};
+use windows::Win32::System::LibraryLoader::GetModuleHandleW;
+use windows::Win32::UI::WindowsAndMessaging::{
     AdjustWindowRectEx, CreateWindowExW, DefWindowProcW, DestroyWindow, LoadCursorW,
     RegisterClassW, ShowWindow, CREATESTRUCTW, CW_USEDEFAULT, GWLP_USERDATA, HMENU, IDC_ARROW,
-    SW_SHOW, WINDOW_LONG_PTR_INDEX, WM_NCCREATE, WNDCLASSW, WS_EX_NOREDIRECTIONBITMAP,
-    WS_OVERLAPPEDWINDOW,
+    SW_SHOW, WM_NCCREATE, WNDCLASSW, WS_EX_NOREDIRECTIONBITMAP,
+    WS_OVERLAPPEDWINDOW, GetWindowLongPtrW, SetWindowLongPtrW,
 };
-use windows::Handle;
+use windows::core::HSTRING;
+use windows::h;
 
-use super::wide_string::ToWide;
+use super::handle::CheckHandle;
 
 static TEST_WINDOW_CLASS_REGISTRATION: Once = Once::new();
-static TEST_WINDOW_CLASS_NAME: &str = "wgctest.TestWindow";
+static TEST_WINDOW_CLASS_NAME: &HSTRING = h!("wgctest.TestWindow");
 
 pub struct TestWindow {
     handle: HWND,
@@ -28,10 +29,10 @@ impl TestWindow {
         title: &'static str,
         width: u32,
         height: u32,
-    ) -> windows::Result<Self> {
+    ) -> windows::core::Result<Self> {
         let (sender, receiver) = channel();
-        dispatcher_queue.TryEnqueue(DispatcherQueueHandler::new(
-            move || -> windows::Result<()> {
+        dispatcher_queue.TryEnqueue(&DispatcherQueueHandler::new(
+            move || -> windows::core::Result<()> {
                 let window = TestWindow::new(title, width, height)?;
                 sender.send(window).unwrap();
                 Ok(())
@@ -41,14 +42,13 @@ impl TestWindow {
         Ok(window)
     }
 
-    pub fn new(title: &str, width: u32, height: u32) -> windows::Result<Self> {
-        let class_name = TEST_WINDOW_CLASS_NAME.to_wide();
-        let instance = unsafe { GetModuleHandleW(PWSTR(std::ptr::null_mut())).ok()? };
+    pub fn new(title: &str, width: u32, height: u32) -> windows::core::Result<Self> {
+        let instance = unsafe { GetModuleHandleW(None)? };
         TEST_WINDOW_CLASS_REGISTRATION.call_once(|| {
             let class = WNDCLASSW {
                 hCursor: unsafe { LoadCursorW(HINSTANCE(0), IDC_ARROW).ok().unwrap() },
                 hInstance: instance,
-                lpszClassName: class_name.as_pwstr(),
+                lpszClassName: TEST_WINDOW_CLASS_NAME.into(),
                 lpfnWndProc: Some(Self::wnd_proc),
                 ..Default::default()
             };
@@ -78,12 +78,11 @@ impl TestWindow {
             queue: DispatcherQueue::GetForCurrentThread()?,
         };
 
-        let title = title.to_wide();
         let window = unsafe {
             CreateWindowExW(
                 window_ex_style,
-                class_name.as_pwstr(),
-                title.as_pwstr(),
+                TEST_WINDOW_CLASS_NAME,
+                &HSTRING::from(title),
                 window_style,
                 CW_USEDEFAULT,
                 CW_USEDEFAULT,
@@ -92,11 +91,11 @@ impl TestWindow {
                 HWND(0),
                 HMENU(0),
                 instance,
-                &mut result as *mut _ as _,
+                Some(&mut result as *mut _ as _),
             )
             .ok()?
         };
-        unsafe { ShowWindow(&window, SW_SHOW) };
+        unsafe { ShowWindow(window, SW_SHOW) };
 
         Ok(result)
     }
@@ -105,14 +104,15 @@ impl TestWindow {
         self.handle
     }
 
-    pub fn close(&self) -> windows::Result<()> {
+    pub fn close(&self) -> windows::core::Result<()> {
         let handle = self.handle;
-        self.queue.TryEnqueue(DispatcherQueueHandler::new(
-            move || -> windows::Result<()> {
+        let handler = DispatcherQueueHandler::new(
+            move || -> windows::core::Result<()> {
                 unsafe { DestroyWindow(handle) };
                 Ok(())
             },
-        ))?;
+        );
+        self.queue.TryEnqueue(&handler)?;
         Ok(())
     }
 
@@ -131,9 +131,9 @@ impl TestWindow {
             let this = (*cs).lpCreateParams as *mut Self;
             (*this).handle = window;
 
-            SetWindowLong(window, GWLP_USERDATA, this as _);
+            SetWindowLongPtrW(window, GWLP_USERDATA, this as _);
         } else {
-            let this = GetWindowLong(window, GWLP_USERDATA) as *mut Self;
+            let this = GetWindowLongPtrW(window, GWLP_USERDATA) as *mut Self;
 
             if !this.is_null() {
                 return (*this).message_handler(message, wparam, lparam);
@@ -147,36 +147,4 @@ impl Drop for TestWindow {
     fn drop(&mut self) {
         self.close().unwrap();
     }
-}
-
-#[allow(non_snake_case)]
-#[cfg(target_pointer_width = "32")]
-unsafe fn SetWindowLong(window: HWND, index: WINDOW_LONG_PTR_INDEX, value: isize) -> isize {
-    use bindings::Windows::Win32::UI::WindowsAndMessaging::SetWindowLongW;
-
-    SetWindowLongW(window, index, value as _) as _
-}
-
-#[allow(non_snake_case)]
-#[cfg(target_pointer_width = "64")]
-unsafe fn SetWindowLong(window: HWND, index: WINDOW_LONG_PTR_INDEX, value: isize) -> isize {
-    use bindings::Windows::Win32::UI::WindowsAndMessaging::SetWindowLongPtrW;
-
-    SetWindowLongPtrW(window, index, value)
-}
-
-#[allow(non_snake_case)]
-#[cfg(target_pointer_width = "32")]
-unsafe fn GetWindowLong(window: HWND, index: WINDOW_LONG_PTR_INDEX) -> isize {
-    use bindings::Windows::Win32::UI::WindowsAndMessaging::SetWindowLongW;
-
-    GetWindowLongW(window, index) as _
-}
-
-#[allow(non_snake_case)]
-#[cfg(target_pointer_width = "64")]
-unsafe fn GetWindowLong(window: HWND, index: WINDOW_LONG_PTR_INDEX) -> isize {
-    use bindings::Windows::Win32::UI::WindowsAndMessaging::GetWindowLongPtrW;
-
-    GetWindowLongPtrW(window, index)
 }

@@ -9,4 +9,4 @@ pub mod snapshot;
 #[macro_use]
 pub mod test_runner;
 pub mod test_window;
-pub mod wide_string;
+pub mod handle;

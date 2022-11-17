@@ -4,11 +4,11 @@ mod util;
 
 use std::sync::mpsc::channel;
 
-use bindings::Windows::Win32::System::WinRT::{RoInitialize, RO_INIT_MULTITHREADED};
-use bindings::Windows::Win32::UI::HiDpi::{
+use windows::Win32::System::WinRT::{RoInitialize, RO_INIT_MULTITHREADED};
+use windows::Win32::UI::HiDpi::{
     SetProcessDpiAwarenessContext, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2,
 };
-use bindings::Windows::{
+use windows::{
     System::{DispatcherQueueController, DispatcherQueueHandler},
     UI::Composition::Core::CompositorController,
 };
@@ -17,7 +17,7 @@ use crate::tests::{alpha_test, basic_window_test, fullscreen_transition_test};
 use crate::util::d3d::{create_d3d_device, create_direct3d_device};
 
 #[async_std::main]
-async fn main() -> windows::Result<()> {
+async fn main() -> windows::core::Result<()> {
     // NOTE: We don't properly scale any of the UI or properly respond to DPI changes, but none of
     //       the UI is meant to be interacted with. This is just so that the tests don't get
     //       virtualized coordinates on high DPI machines.
@@ -33,13 +33,14 @@ async fn main() -> windows::Result<()> {
     // over calling Commit.
     let compositor_controller = {
         let (sender, receiver) = channel();
-        compositor_queue.TryEnqueue(DispatcherQueueHandler::new(
-            move || -> windows::Result<()> {
+        let handler = DispatcherQueueHandler::new(
+            move || -> windows::core::Result<()> {
                 let compositor_controller = CompositorController::new()?;
                 sender.send(compositor_controller).unwrap();
                 Ok(())
             },
-        ))?;
+        );
+        compositor_queue.TryEnqueue(&handler)?;
         receiver.recv().unwrap()
     };
 

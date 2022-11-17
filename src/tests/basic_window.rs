@@ -1,4 +1,4 @@
-use bindings::Windows::{
+use windows::{
     Foundation::Numerics::Vector2,
     Graphics::DirectX::{Direct3D11::IDirect3DDevice, DirectXPixelFormat},
     System::DispatcherQueue,
@@ -33,8 +33,8 @@ pub async fn basic_window_test(
     let target = compositor.create_desktop_window_target(&window.handle(), false)?;
     let root = compositor.CreateSpriteVisual()?;
     root.SetRelativeSizeAdjustment(Vector2::new(1.0, 1.0))?;
-    root.SetBrush(compositor.CreateColorBrushWithColor(common_colors::GREEN)?)?;
-    target.SetRoot(root)?;
+    root.SetBrush(&compositor.CreateColorBrushWithColor(common_colors::GREEN)?)?;
+    target.SetRoot(&root)?;
     compositor_controller.Commit()?;
 
     // Capture the window

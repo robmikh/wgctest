@@ -1,12 +1,12 @@
 use std::{error::Error, fmt};
 
-use bindings::Windows::Win32::Graphics::Direct3D11::ID3D11Texture2D;
+use windows::Win32::Graphics::Direct3D11::ID3D11Texture2D;
 
 pub type TestResult<T> = std::result::Result<T, TestError>;
 
 #[derive(Debug)]
 pub enum TestError {
-    General(windows::Error),
+    General(windows::core::Error),
     Texture(TextureError),
 }
 
@@ -34,8 +34,8 @@ impl Error for TestError {
     }
 }
 
-impl From<windows::Error> for TestError {
-    fn from(error: windows::Error) -> Self {
+impl From<windows::core::Error> for TestError {
+    fn from(error: windows::core::Error) -> Self {
         TestError::General(error)
     }
 }

@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use bindings::Windows::{
+use windows::{
     Graphics::{Capture::GraphicsCaptureItem, DirectX::Direct3D11::IDirect3DDevice},
     System::DispatcherQueue,
     Win32::{
@@ -10,17 +10,16 @@ use bindings::Windows::{
                 ID3D11Device, ID3D11DeviceContext, ID3D11RenderTargetView, ID3D11Texture2D,
             },
             Dxgi::{
-                IDXGIAdapter, IDXGIDevice2, IDXGIFactory2, IDXGISwapChain1, DXGI_ALPHA_MODE_IGNORE,
-                DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_PRESENT_PARAMETERS, DXGI_SAMPLE_DESC,
+                IDXGIAdapter, IDXGIDevice2, IDXGIFactory2, IDXGISwapChain1, DXGI_PRESENT_PARAMETERS,
                 DXGI_SCALING_NONE, DXGI_SWAP_CHAIN_DESC1, DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL,
-                DXGI_USAGE_RENDER_TARGET_OUTPUT,
+                DXGI_USAGE_RENDER_TARGET_OUTPUT, Common::{DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_SAMPLE_DESC, DXGI_ALPHA_MODE_IGNORE},
             },
         },
         UI::WindowsAndMessaging::GetClientRect,
     },
     UI::Color,
 };
-use windows::Interface;
+use windows::core::Interface;
 
 use crate::util::{
     async_graphics_capture::AsyncGraphicsCapture,
@@ -103,7 +102,7 @@ impl TestSwapChain {
         width: u32,
         height: u32,
         window: &HWND,
-    ) -> windows::Result<Self> {
+    ) -> windows::core::Result<Self> {
         let mut d3d_context = None;
         unsafe { d3d_device.GetImmediateContext(&mut d3d_context) };
         let d3d_context = d3d_context.unwrap();
@@ -130,12 +129,12 @@ impl TestSwapChain {
         let factory: IDXGIFactory2 = unsafe { adapter.GetParent()? };
 
         let swap_chain = unsafe {
-            factory.CreateSwapChainForHwnd(d3d_device, window, &desc, std::ptr::null(), None)?
+            factory.CreateSwapChainForHwnd(d3d_device, *window, &desc, None, None)?
         };
 
         let back_buffer: ID3D11Texture2D = unsafe { swap_chain.GetBuffer(0)? };
         let render_target_view =
-            unsafe { d3d_device.CreateRenderTargetView(&back_buffer, std::ptr::null())? };
+            unsafe { d3d_device.CreateRenderTargetView(&back_buffer, None)? };
 
         Ok(Self {
             d3d_device: d3d_device.clone(),
@@ -147,7 +146,7 @@ impl TestSwapChain {
         })
     }
 
-    pub fn set_fullscreen(&mut self, fullscreen: bool) -> windows::Result<()> {
+    pub fn set_fullscreen(&mut self, fullscreen: bool) -> windows::core::Result<()> {
         if fullscreen != self.is_fullscreen {
             self.is_fullscreen = fullscreen;
             let (width, height) = if fullscreen {
@@ -166,7 +165,7 @@ impl TestSwapChain {
                 (width as u32, height as u32)
             } else {
                 let mut rect = RECT::default();
-                unsafe { GetClientRect(&self.window, &mut rect).ok()? };
+                unsafe { GetClientRect(self.window, &mut rect).ok()? };
 
                 let width = rect.right - rect.left;
                 let height = rect.bottom - rect.top;
@@ -183,14 +182,14 @@ impl TestSwapChain {
             let back_buffer: ID3D11Texture2D = unsafe { self.swap_chain.GetBuffer(0)? };
             let render_target_view = unsafe {
                 self.d3d_device
-                    .CreateRenderTargetView(&back_buffer, std::ptr::null())?
+                    .CreateRenderTargetView(&back_buffer, None)?
             };
             self.render_target_view = Some(render_target_view);
         }
         Ok(())
     }
 
-    pub fn flip(&self, color: &Color) -> windows::Result<()> {
+    pub fn flip(&self, color: &Color) -> windows::core::Result<()> {
         let color_f = [
             color.R as f32 / 255.0,
             color.G as f32 / 255.0,
@@ -199,10 +198,10 @@ impl TestSwapChain {
         ];
         unsafe {
             self.d3d_context
-                .ClearRenderTargetView(&self.render_target_view, &color_f as *const _)
+                .ClearRenderTargetView(self.render_target_view.as_ref().unwrap(), &color_f as *const _)
         };
         let present_params = DXGI_PRESENT_PARAMETERS::default();
-        unsafe { self.swap_chain.Present1(0, 0, &present_params)? };
+        unsafe { self.swap_chain.Present1(0, 0, &present_params).ok()? };
         Ok(())
     }
 }

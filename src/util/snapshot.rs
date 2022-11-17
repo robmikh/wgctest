@@ -1,5 +1,5 @@
 use async_std::{channel::bounded, task::block_on};
-use bindings::Windows::{
+use windows::{
     Foundation::TypedEventHandler,
     Graphics::{
         Capture::{Direct3D11CaptureFramePool, GraphicsCaptureItem},
@@ -12,7 +12,7 @@ use bindings::Windows::{
             Direct3D11::{
                 ID3D11Device, ID3D11Texture2D, D3D11_BIND_FLAG, D3D11_BIND_SHADER_RESOURCE,
                 D3D11_BOX, D3D11_CPU_ACCESS_FLAG, D3D11_CPU_ACCESS_READ, D3D11_RESOURCE_MISC_FLAG,
-                D3D11_TEXTURE2D_DESC, D3D11_USAGE_DEFAULT, D3D11_USAGE_STAGING,
+                D3D11_TEXTURE2D_DESC, D3D11_USAGE_DEFAULT, D3D11_USAGE_STAGING, ID3D11Resource,
             },
             Dwm::{DwmGetWindowAttribute, DWMWA_EXTENDED_FRAME_BOUNDS},
             Gdi::ClientToScreen,
@@ -21,7 +21,7 @@ use bindings::Windows::{
     },
     UI::Composition::Core::CompositorController,
 };
-use windows::Interface;
+use windows::core::Interface;
 
 use super::{d3d::get_d3d_interface_from_object, interop::GraphicsCaptureItemInterop};
 
@@ -31,7 +31,7 @@ pub async fn take_snapshot(
     pixel_format: DirectXPixelFormat,
     staging_texture: bool,
     cursor_enabled: bool,
-) -> windows::Result<ID3D11Texture2D> {
+) -> windows::core::Result<ID3D11Texture2D> {
     let texture = take_snapshot_internal(
         device,
         item,
@@ -39,7 +39,7 @@ pub async fn take_snapshot(
         staging_texture,
         cursor_enabled,
         None,
-        || -> windows::Result<()> { Ok(()) },
+        || -> windows::core::Result<()> { Ok(()) },
     )
     .await?;
     Ok(texture)
@@ -52,7 +52,7 @@ pub async fn take_snapshot_with_commit(
     staging_texture: bool,
     cursor_enabled: bool,
     compositor_controller: &CompositorController,
-) -> windows::Result<ID3D11Texture2D> {
+) -> windows::core::Result<ID3D11Texture2D> {
     let texture = take_snapshot_internal(
         device,
         item,
@@ -60,7 +60,7 @@ pub async fn take_snapshot_with_commit(
         staging_texture,
         cursor_enabled,
         None,
-        || -> windows::Result<()> { compositor_controller.Commit() },
+        || -> windows::core::Result<()> { compositor_controller.Commit() },
     )
     .await?;
     Ok(texture)
@@ -72,21 +72,21 @@ pub async fn take_snapshot_of_client_area(
     staging_texture: bool,
     cursor_enabled: bool,
     window_handle: &HWND,
-) -> windows::Result<ID3D11Texture2D> {
+) -> windows::core::Result<ID3D11Texture2D> {
     let mut client_rect = RECT::default();
-    unsafe { GetClientRect(window_handle, &mut client_rect).ok()? };
+    unsafe { GetClientRect(*window_handle, &mut client_rect).ok()? };
 
     let mut client_origin = POINT {
         x: client_rect.left,
         y: client_rect.top,
     };
-    unsafe { ClientToScreen(window_handle, &mut client_origin).ok()? };
+    unsafe { ClientToScreen(*window_handle, &mut client_origin).ok()? };
 
     let mut window_bounds = RECT::default();
     unsafe {
         DwmGetWindowAttribute(
-            window_handle,
-            DWMWA_EXTENDED_FRAME_BOUNDS.0 as u32,
+            *window_handle,
+            DWMWA_EXTENDED_FRAME_BOUNDS,
             &mut window_bounds as *mut _ as *mut _,
             std::mem::size_of::<RECT>() as u32,
         )?
@@ -107,13 +107,13 @@ pub async fn take_snapshot_of_client_area(
         staging_texture,
         cursor_enabled,
         Some(rect),
-        || -> windows::Result<()> { Ok(()) },
+        || -> windows::core::Result<()> { Ok(()) },
     )
     .await?;
     Ok(texture)
 }
 
-async fn take_snapshot_internal<F: Fn() -> windows::Result<()>>(
+async fn take_snapshot_internal<F: Fn() -> windows::core::Result<()>>(
     device: &IDirect3DDevice,
     item: &GraphicsCaptureItem,
     pixel_format: DirectXPixelFormat,
@@ -121,7 +121,7 @@ async fn take_snapshot_internal<F: Fn() -> windows::Result<()>>(
     cursor_enabled: bool,
     rect: Option<RectInt32>,
     started: F,
-) -> windows::Result<ID3D11Texture2D> {
+) -> windows::core::Result<ID3D11Texture2D> {
     let item_size = item.Size()?;
 
     let d3d_device: ID3D11Device = get_d3d_interface_from_object(device)?;
@@ -139,15 +139,16 @@ async fn take_snapshot_internal<F: Fn() -> windows::Result<()>>(
     }
 
     let (sender, receiver) = bounded(1);
-    frame_pool.FrameArrived(TypedEventHandler::<
-        Direct3D11CaptureFramePool,
-        windows::IInspectable,
-    >::new(move |frame_pool, _| {
-        let frame_pool = frame_pool.as_ref().unwrap();
-        let frame = frame_pool.TryGetNextFrame()?;
-        block_on(sender.send(frame)).unwrap();
-        Ok(())
-    }))?;
+    let handler = TypedEventHandler::<
+    Direct3D11CaptureFramePool,
+    windows::core::IInspectable,
+>::new(move |frame_pool, _| {
+    let frame_pool = frame_pool.as_ref().unwrap();
+    let frame = frame_pool.TryGetNextFrame()?;
+    block_on(sender.send(frame)).unwrap();
+    Ok(())
+});
+    frame_pool.FrameArrived(&handler)?;
     session.StartCapture()?;
     started()?;
 
@@ -170,7 +171,9 @@ async fn take_snapshot_internal<F: Fn() -> windows::Result<()>>(
             desc.Width = rect.Width as u32;
             desc.Height = rect.Height as u32;
         }
-        let texture = d3d_device.CreateTexture2D(&desc, std::ptr::null())?;
+        let texture = d3d_device.CreateTexture2D(&desc, None)?;
+        let resource: ID3D11Resource = texture.cast()?;
+        let source_resource: ID3D11Resource = source_texture.cast()?;
         if let Some(rect) = &rect {
             let d3d_box = D3D11_BOX {
                 left: rect.X as u32,
@@ -181,17 +184,17 @@ async fn take_snapshot_internal<F: Fn() -> windows::Result<()>>(
                 back: 1,
             };
             d3d_context.CopySubresourceRegion(
-                Some(texture.cast()?),
+                &resource,
                 0,
                 0,
                 0,
                 0,
-                Some(source_texture.cast()?),
+                &source_resource,
                 0,
-                &d3d_box,
+                Some(&d3d_box),
             );
         } else {
-            d3d_context.CopyResource(Some(texture.cast()?), Some(source_texture.cast()?));
+            d3d_context.CopyResource(&resource, &source_resource);
         }
 
         texture

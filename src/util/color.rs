@@ -1,9 +1,9 @@
-use bindings::Windows::{
+use windows::{
     Graphics::DirectX::Direct3D11::IDirect3DSurface,
     Win32::Graphics::Direct3D11::{ID3D11DeviceChild, ID3D11Texture2D},
     UI::Color,
 };
-use windows::Interface;
+use windows::core::Interface;
 
 use super::{
     d3d::{copy_texture, get_d3d_interface_from_object},
@@ -76,7 +76,7 @@ pub fn test_surface_at_point(
 }
 
 pub mod common_colors {
-    use bindings::Windows::UI::Color;
+    use windows::UI::Color;
 
     pub const TRANSPARENT_BLACK: Color = Color {
         A: 0,

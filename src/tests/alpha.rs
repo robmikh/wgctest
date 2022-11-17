@@ -1,4 +1,4 @@
-use bindings::Windows::{
+use windows::{
     Foundation::Numerics::Vector2,
     Graphics::{
         Capture::GraphicsCaptureItem,
@@ -27,9 +27,9 @@ pub async fn alpha_test(
     let geometry = compositor.CreateEllipseGeometry()?;
     geometry.SetCenter(Vector2::new(50.0, 50.0))?;
     geometry.SetRadius(Vector2::new(50.0, 50.0))?;
-    let shape = compositor.CreateSpriteShapeWithGeometry(geometry)?;
-    shape.SetFillBrush(compositor.CreateColorBrushWithColor(&common_colors::RED)?)?;
-    visual.Shapes()?.Append(shape)?;
+    let shape = compositor.CreateSpriteShapeWithGeometry(&geometry)?;
+    shape.SetFillBrush(&compositor.CreateColorBrushWithColor(common_colors::RED)?)?;
+    visual.Shapes()?.Append(&shape)?;
 
     // Capture the tree
     let item = GraphicsCaptureItem::CreateFromVisual(&visual)?;

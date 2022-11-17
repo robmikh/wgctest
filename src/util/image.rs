@@ -1,21 +1,21 @@
-use bindings::Windows::{
+use windows::{
     Graphics::Imaging::{BitmapAlphaMode, BitmapEncoder, BitmapPixelFormat},
     Storage::{CreationCollisionOption, FileAccessMode, StorageFolder},
     Win32::Graphics::Direct3D11::{
         ID3D11DeviceChild, ID3D11Resource, ID3D11Texture2D, D3D11_MAP_READ, D3D11_TEXTURE2D_DESC,
-    },
+    }, core::HSTRING,
 };
-use windows::Interface;
+use windows::core::Interface;
 
-pub async fn save_image_async(file_stem: &str, texture: &ID3D11Texture2D) -> windows::Result<()> {
+pub async fn save_image_async(file_stem: &str, texture: &ID3D11Texture2D) -> windows::core::Result<()> {
     let path = std::env::current_dir()
         .unwrap()
         .to_string_lossy()
         .to_string();
-    let folder = StorageFolder::GetFolderFromPathAsync(path.as_str())?.await?;
+    let folder = StorageFolder::GetFolderFromPathAsync(&HSTRING::from(path.as_str()))?.await?;
     let file = folder
         .CreateFileAsync(
-            format!("{}.png", file_stem),
+            &HSTRING::from(format!("{}.png", file_stem)),
             CreationCollisionOption::ReplaceExisting,
         )?
         .await?;
@@ -36,7 +36,7 @@ pub async fn save_image_async(file_stem: &str, texture: &ID3D11Texture2D) -> win
         texture.GetDesc(&mut desc as *mut _);
 
         let resource: ID3D11Resource = texture.cast()?;
-        let mapped = d3d_context.Map(Some(resource.clone()), 0, D3D11_MAP_READ, 0)?;
+        let mapped = d3d_context.Map(&resource, 0, D3D11_MAP_READ, 0)?;
 
         // Get a slice of bytes
         let slice: &[u8] = {
@@ -56,14 +56,14 @@ pub async fn save_image_async(file_stem: &str, texture: &ID3D11Texture2D) -> win
             bytes[data_begin..data_end].copy_from_slice(&slice[slice_begin..slice_end]);
         }
 
-        d3d_context.Unmap(Some(resource), 0);
+        d3d_context.Unmap(&resource, 0);
 
         (bytes, desc.Width, desc.Height)
     };
 
     {
         let stream = file.OpenAsync(FileAccessMode::ReadWrite)?.await?;
-        let encoder = BitmapEncoder::CreateAsync(BitmapEncoder::PngEncoderId()?, stream)?.await?;
+        let encoder = BitmapEncoder::CreateAsync(BitmapEncoder::PngEncoderId()?, &stream)?.await?;
         encoder.SetPixelData(
             BitmapPixelFormat::Bgra8,
             BitmapAlphaMode::Premultiplied,

@@ -1,4 +1,4 @@
-use bindings::Windows::{
+use windows::{
     Foundation::TypedEventHandler,
     Graphics::{
         Capture::{
@@ -17,7 +17,7 @@ pub struct AsyncGraphicsCapture {
 }
 
 impl AsyncGraphicsCapture {
-    pub fn new(device: &IDirect3DDevice, item: GraphicsCaptureItem) -> windows::Result<Self> {
+    pub fn new(device: &IDirect3DDevice, item: GraphicsCaptureItem) -> windows::core::Result<Self> {
         let frame_pool = Direct3D11CaptureFramePool::CreateFreeThreaded(
             device,
             DirectXPixelFormat::B8G8R8A8UIntNormalized,
@@ -25,17 +25,18 @@ impl AsyncGraphicsCapture {
             item.Size()?,
         )?;
         let (sender, receiver) = async_std::channel::bounded(1);
-        frame_pool.FrameArrived(TypedEventHandler::<
-            Direct3D11CaptureFramePool,
-            windows::IInspectable,
-        >::new(
-            move |frame_pool, _| -> windows::Result<()> {
-                let frame_pool = frame_pool.as_ref().unwrap();
-                let frame = frame_pool.TryGetNextFrame()?;
-                async_std::task::block_on(sender.send(frame)).unwrap();
-                Ok(())
-            },
-        ))?;
+        let handler = TypedEventHandler::<
+        Direct3D11CaptureFramePool,
+        windows::core::IInspectable,
+    >::new(
+        move |frame_pool, _| -> windows::core::Result<()> {
+            let frame_pool = frame_pool.as_ref().unwrap();
+            let frame = frame_pool.TryGetNextFrame()?;
+            async_std::task::block_on(sender.send(frame)).unwrap();
+            Ok(())
+        },
+    );
+        frame_pool.FrameArrived(&handler)?;
         let session = frame_pool.CreateCaptureSession(&item)?;
         session.StartCapture()?;
         Ok(Self {
@@ -46,7 +47,7 @@ impl AsyncGraphicsCapture {
         })
     }
 
-    pub async fn get_next_frame(&self) -> windows::Result<Direct3D11CaptureFrame> {
+    pub async fn get_next_frame(&self) -> windows::core::Result<Direct3D11CaptureFrame> {
         let frame = self.receiver.recv().await.unwrap();
         Ok(frame)
     }
