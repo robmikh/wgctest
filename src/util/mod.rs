@@ -1,4 +1,4 @@
-pub mod async_graphics_capture;
+pub mod graphics_capture;
 pub mod color;
 pub mod d3d;
 pub mod error;

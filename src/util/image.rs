@@ -8,6 +8,13 @@ use windows::{
     },
 };
 
+pub fn save_image(
+    file_stem: &str,
+    texture: &ID3D11Texture2D,
+) -> windows::core::Result<()> {
+    pollster::block_on(save_image_async(file_stem, texture))
+}
+
 pub async fn save_image_async(
     file_stem: &str,
     texture: &ID3D11Texture2D,

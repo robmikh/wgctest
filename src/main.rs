@@ -16,8 +16,7 @@ use windows::{
 use crate::tests::{alpha_test, basic_window_test, fullscreen_transition_test};
 use crate::util::d3d::{create_d3d_device, create_direct3d_device};
 
-#[async_std::main]
-async fn main() -> windows::core::Result<()> {
+fn main() -> windows::core::Result<()> {
     // NOTE: We don't properly scale any of the UI or properly respond to DPI changes, but none of
     //       the UI is meant to be interacted with. This is just so that the tests don't get
     //       virtualized coordinates on high DPI machines.

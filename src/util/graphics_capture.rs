@@ -1,3 +1,5 @@
+use std::sync::mpsc::{channel, Receiver};
+
 use windows::{
     Foundation::TypedEventHandler,
     Graphics::{
@@ -9,14 +11,14 @@ use windows::{
     },
 };
 
-pub struct AsyncGraphicsCapture {
+pub struct GraphicsCapture {
     _item: GraphicsCaptureItem,
     frame_pool: Direct3D11CaptureFramePool,
     session: GraphicsCaptureSession,
-    receiver: async_std::channel::Receiver<Direct3D11CaptureFrame>,
+    receiver: Receiver<Direct3D11CaptureFrame>,
 }
 
-impl AsyncGraphicsCapture {
+impl GraphicsCapture {
     pub fn new(device: &IDirect3DDevice, item: GraphicsCaptureItem) -> windows::core::Result<Self> {
         let frame_pool = Direct3D11CaptureFramePool::CreateFreeThreaded(
             device,
@@ -24,13 +26,13 @@ impl AsyncGraphicsCapture {
             1,
             item.Size()?,
         )?;
-        let (sender, receiver) = async_std::channel::bounded(1);
+        let (sender, receiver) = channel();
         let handler =
             TypedEventHandler::<Direct3D11CaptureFramePool, windows::core::IInspectable>::new(
                 move |frame_pool, _| -> windows::core::Result<()> {
                     let frame_pool = frame_pool.as_ref().unwrap();
                     let frame = frame_pool.TryGetNextFrame()?;
-                    async_std::task::block_on(sender.send(frame)).unwrap();
+                    sender.send(frame).unwrap();
                     Ok(())
                 },
             );
@@ -45,13 +47,13 @@ impl AsyncGraphicsCapture {
         })
     }
 
-    pub async fn get_next_frame(&self) -> windows::core::Result<Direct3D11CaptureFrame> {
-        let frame = self.receiver.recv().await.unwrap();
+    pub fn get_next_frame(&self) -> windows::core::Result<Direct3D11CaptureFrame> {
+        let frame = self.receiver.recv().unwrap();
         Ok(frame)
     }
 }
 
-impl Drop for AsyncGraphicsCapture {
+impl Drop for GraphicsCapture {
     fn drop(&mut self) {
         self.session.Close().unwrap();
         self.frame_pool.Close().unwrap();

@@ -14,7 +14,7 @@ use crate::util::{
     test_window::TestWindow,
 };
 
-pub async fn basic_window_test(
+pub fn basic_window_test(
     test_thread_queue: &DispatcherQueue,
     compositor_controller: &CompositorController,
     device: &IDirect3DDevice,
@@ -44,8 +44,7 @@ pub async fn basic_window_test(
         true,
         true,
         &window.handle(),
-    )
-    .await?;
+    )?;
 
     // Map the texture and check the image
     {

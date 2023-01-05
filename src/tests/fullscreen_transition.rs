@@ -1,3 +1,4 @@
+use std::thread::sleep;
 use std::time::Duration;
 
 use windows::core::Interface;
@@ -23,7 +24,7 @@ use windows::{
 };
 
 use crate::util::{
-    async_graphics_capture::AsyncGraphicsCapture,
+    graphics_capture::GraphicsCapture,
     color::{common_colors, test_center_of_surface},
     d3d::get_d3d_interface_from_object,
     error::TestResult,
@@ -31,7 +32,7 @@ use crate::util::{
     test_window::TestWindow,
 };
 
-pub async fn fullscreen_transition_test(
+pub fn fullscreen_transition_test(
     test_thread_queue: &DispatcherQueue,
     device: &IDirect3DDevice,
 ) -> TestResult<()> {
@@ -49,25 +50,25 @@ pub async fn fullscreen_transition_test(
     let mut swap_chain = TestSwapChain::new(&d3d_device, width, height, &window.handle())?;
     swap_chain.flip(&common_colors::RED)?;
 
-    async_std::task::sleep(Duration::from_millis(500)).await;
+    sleep(Duration::from_millis(500));
 
     // Start the capture
     let item = GraphicsCaptureItem::create_for_window(&window.handle())?;
-    let capture = AsyncGraphicsCapture::new(device, item)?;
+    let capture = GraphicsCapture::new(device, item)?;
 
     // The first frame should be red
-    let frame = capture.get_next_frame().await?;
+    let frame = capture.get_next_frame()?;
     test_center_of_surface(frame.Surface()?, &common_colors::RED)?;
 
     // Transition to fullscreen
     swap_chain.set_fullscreen(true)?;
     swap_chain.flip(&common_colors::GREEN)?;
     // Wait for the transition
-    async_std::task::sleep(Duration::from_millis(500)).await;
+    sleep(Duration::from_millis(500));
 
     // Release the previous frame and get a new one
     frame.Close()?;
-    let frame = capture.get_next_frame().await?;
+    let frame = capture.get_next_frame()?;
 
     // Test for green
     test_center_of_surface(frame.Surface()?, &common_colors::GREEN)?;
@@ -76,11 +77,11 @@ pub async fn fullscreen_transition_test(
     swap_chain.set_fullscreen(false)?;
     swap_chain.flip(&common_colors::BLUE)?;
     // Wait for the transition
-    async_std::task::sleep(Duration::from_millis(500)).await;
+    sleep(Duration::from_millis(500));
 
     // Release the previous frame and get a new one
     frame.Close()?;
-    let frame = capture.get_next_frame().await?;
+    let frame = capture.get_next_frame()?;
 
     // Test for blue
     test_center_of_surface(frame.Surface()?, &common_colors::BLUE)?;

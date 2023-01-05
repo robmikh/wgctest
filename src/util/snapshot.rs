@@ -1,4 +1,5 @@
-use async_std::{channel::bounded, task::block_on};
+use std::sync::mpsc::channel;
+
 use windows::core::Interface;
 use windows::{
     Foundation::TypedEventHandler,
@@ -26,7 +27,7 @@ use windows::{
 
 use super::{d3d::get_d3d_interface_from_object, interop::GraphicsCaptureItemInterop};
 
-pub async fn take_snapshot_with_commit(
+pub fn take_snapshot_with_commit(
     device: &IDirect3DDevice,
     item: &GraphicsCaptureItem,
     pixel_format: DirectXPixelFormat,
@@ -42,12 +43,11 @@ pub async fn take_snapshot_with_commit(
         cursor_enabled,
         None,
         || -> windows::core::Result<()> { compositor_controller.Commit() },
-    )
-    .await?;
+    )?;
     Ok(texture)
 }
 
-pub async fn take_snapshot_of_client_area(
+pub fn take_snapshot_of_client_area(
     device: &IDirect3DDevice,
     pixel_format: DirectXPixelFormat,
     staging_texture: bool,
@@ -89,12 +89,11 @@ pub async fn take_snapshot_of_client_area(
         cursor_enabled,
         Some(rect),
         || -> windows::core::Result<()> { Ok(()) },
-    )
-    .await?;
+    )?;
     Ok(texture)
 }
 
-async fn take_snapshot_internal<F: Fn() -> windows::core::Result<()>>(
+fn take_snapshot_internal<F: Fn() -> windows::core::Result<()>>(
     device: &IDirect3DDevice,
     item: &GraphicsCaptureItem,
     pixel_format: DirectXPixelFormat,
@@ -119,12 +118,12 @@ async fn take_snapshot_internal<F: Fn() -> windows::core::Result<()>>(
         session.SetIsCursorCaptureEnabled(false)?;
     }
 
-    let (sender, receiver) = bounded(1);
+    let (sender, receiver) = channel();
     let handler = TypedEventHandler::<Direct3D11CaptureFramePool, windows::core::IInspectable>::new(
         move |frame_pool, _| {
             let frame_pool = frame_pool.as_ref().unwrap();
             let frame = frame_pool.TryGetNextFrame()?;
-            block_on(sender.send(frame)).unwrap();
+            sender.send(frame).unwrap();
             Ok(())
         },
     );
@@ -132,7 +131,7 @@ async fn take_snapshot_internal<F: Fn() -> windows::core::Result<()>>(
     session.StartCapture()?;
     started()?;
 
-    let frame = receiver.recv().await.unwrap();
+    let frame = receiver.recv().unwrap();
     let result_texture = unsafe {
         let source_texture: ID3D11Texture2D = get_d3d_interface_from_object(&frame.Surface()?)?;
         let mut desc = D3D11_TEXTURE2D_DESC::default();

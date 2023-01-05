@@ -14,7 +14,7 @@ use crate::util::{
     snapshot::take_snapshot_with_commit,
 };
 
-pub async fn alpha_test(
+pub fn alpha_test(
     compositor_controller: &CompositorController,
     device: &IDirect3DDevice,
 ) -> TestResult<()> {
@@ -40,8 +40,7 @@ pub async fn alpha_test(
         true,
         true,
         compositor_controller,
-    )
-    .await?;
+    )?;
 
     // Map the texture and check the image
     {
